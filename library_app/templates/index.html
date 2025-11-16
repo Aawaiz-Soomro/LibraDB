@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="row text-center g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Books</h5>
+          <p class="display-6">{{ book_count }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Users</h5>
+          <p class="display-6">{{ user_count }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Bookings</h5>
+          <p class="display-6">{{ booking_count }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Ratings</h5>
+          <p class="display-6">{{ rating_count }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Recently added books</div>
+        <ul class="list-group list-group-flush">
+          {% for book in recent_books %}
+            <li class="list-group-item">
+              <strong>{{ book.title }}</strong> by {{ book.author }}<br>
+              <small>{{ book.category.name if book.category else 'Uncategorized' }}</small>
+            </li>
+          {% else %}
+            <li class="list-group-item">No books yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Top rated books</div>
+        <ul class="list-group list-group-flush">
+          {% for book in top_rated %}
+            <li class="list-group-item d-flex justify-content-between">
+              <span>{{ book.title }}</span>
+              <span class="badge bg-success">{{ book.average_rating() }} / 5</span>
+            </li>
+          {% else %}
+            <li class="list-group-item">No ratings yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+{% endblock %}
