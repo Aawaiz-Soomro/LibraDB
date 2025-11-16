@@ -10,6 +10,7 @@ A simple full-stack Library Management System built with Flask, Jinja templates,
 - Collect 1-5 star ratings with comments for each book.
 - Dashboard with quick statistics, recent additions, and top-rated books.
 - Database seeding command to populate demo data.
+- Dedicated `/portfolio` experience that showcases a design-first personal landing page you can customize with your own copy and imagery.
 
 ## Tech stack
 
@@ -48,6 +49,15 @@ A simple full-stack Library Management System built with Flask, Jinja templates,
    ```
 
 5. **Access the UI** at http://localhost:5000 to manage books, users, bookings, and ratings.
+
+### Portfolio page
+
+The project also bundles a high-polish dark portfolio website meant for quick personal presentations.
+
+- Start the Flask dev server and visit `http://localhost:5000/portfolio`.
+- Update `library_app/routes.py` to tweak the dummy content (hero text, stats, featured projects, etc.).
+- Replace the placeholder imagery referenced in `library_app/templates/portfolio.html` and adjust the bespoke styling in `library_app/static/css/portfolio.css` as needed.
+- The template is fully responsive and intentionally data-light to keep the page fast while emphasizing visuals.
 
 ## Project structure
 
