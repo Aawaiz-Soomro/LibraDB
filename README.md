@@ -10,7 +10,6 @@ A simple full-stack Library Management System built with Flask, Jinja templates,
 - Collect 1-5 star ratings with comments for each book.
 - Dashboard with quick statistics, recent additions, and top-rated books.
 - Database seeding command to populate demo data.
-- Dedicated `/portfolio` experience that showcases a design-first personal landing page you can customize with your own copy and imagery.
 
 ## Tech stack
 
@@ -75,10 +74,3 @@ The project also bundles a high-polish dark portfolio website meant for quick pe
 └── README.md
 ```
 
-## Next steps
-
-- Add authentication/authorization (Flask-Login) if you need per-user access.
-- Extend the ER diagram with more entities (fines, publishers, etc.).
-- Containerize with Docker for easier deployment.
-
-Feel free to adapt the codebase to match your ER diagram or presentation requirements.
