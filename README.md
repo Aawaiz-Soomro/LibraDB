@@ -1,4 +1,4 @@
-# Library Management System
+# LibraDB - Library Management System
 
 A simple full-stack Library Management System built with Flask, Jinja templates, Bootstrap, and MySQL/SQLite. It demonstrates CRUD operations, booking, ratings, listings, and other common library workflows with a clean UI.
 
