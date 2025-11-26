@@ -504,6 +504,9 @@ def create_booking():
             start_date=get_form_value("start_date", lambda v: date.fromisoformat(v)),
             end_date=get_form_value("end_date", lambda v: date.fromisoformat(v)),
             approved=True,
+            return_requested=False,
+            returned=False,
+            fine_amount=0,
         )
         book.copies_available -= 1
         db.session.add(booking)
@@ -521,11 +524,18 @@ def return_booking(booking_id: int):
         return redirect_response
 
     booking = Booking.query.get_or_404(booking_id)
-    if booking.approved and not booking.returned:
+    if booking.approved and (booking.return_requested or not booking.returned):
         booking.returned = True
+        booking.return_requested = False
+        booking.returned_at = date.today()
+        days_overdue = max((booking.returned_at - booking.end_date).days, 0)
+        booking.fine_amount = days_overdue * 100
         booking.book.copies_available += 1
         db.session.commit()
-        flash("Book returned", "success")
+        if booking.fine_amount:
+            flash(f"Return confirmed. Fine: Rs {booking.fine_amount}.", "warning")
+        else:
+            flash("Return confirmed.", "success")
     return redirect(url_for("library.bookings"))
 
 
@@ -628,11 +638,7 @@ def member_bookings():
         return redirect_response
 
     member = current_member()
-    bookings_list = (
-        Booking.query.filter_by(user_id=member.id)
-        .order_by(Booking.start_date.desc())
-        .all()
-    )
+    bookings_list = Booking.query.filter_by(user_id=member.id).order_by(Booking.start_date.desc()).all()
     return render_template("member/bookings.html", bookings=bookings_list, member=member)
 
 
@@ -685,6 +691,9 @@ def member_create_booking():
             start_date=start_date,
             end_date=end_date,
             approved=False,
+            return_requested=False,
+            returned=False,
+            fine_amount=0,
         )
         db.session.add(booking)
         db.session.commit()
@@ -717,11 +726,14 @@ def member_return_booking(booking_id: int):
         flash("This booking is still awaiting librarian approval.", "warning")
         return redirect(url_for("library.member_bookings"))
 
+    if booking.return_requested:
+        flash("Return already requested. A librarian will confirm it.", "info")
+        return redirect(url_for("library.member_bookings"))
+
     if not booking.returned:
-        booking.returned = True
-        booking.book.copies_available += 1
+        booking.return_requested = True
         db.session.commit()
-        flash("Book marked as returned", "success")
+        flash("Return requested. A librarian must confirm it.", "success")
 
     return redirect(url_for("library.member_bookings"))
 

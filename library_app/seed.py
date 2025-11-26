@@ -121,6 +121,9 @@ def seed_database() -> None:
             start_date=date.today(),
             end_date=date.today() + timedelta(days=7),
             approved=True,
+            return_requested=False,
+            returned=False,
+            fine_amount=0,
         )
         clean_code.copies_available = max(clean_code.copies_available - 1, 0)
         db.session.add(booking)

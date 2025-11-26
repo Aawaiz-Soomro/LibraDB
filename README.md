@@ -4,41 +4,33 @@ Flask + SQLite library manager with a single login/registration screen, role-awa
 
 ## Windows + SQLite quick start
 
-These steps assume Windows 10/11, Python 3.11+, and PowerShell.
+### First-time setup (Windows 10/11 + PowerShell, Python 3.11+)
+```powershell
+git clone https://github.com/your-org/LibraDB.git
+cd "LibraDB"  # or your folder name
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
 
-1) **Clone and create a virtual environment**
-   ```powershell
-   git clone https://github.com/your-org/LibraDB.git
-   cd LibraDB
-   python -m venv .venv
-   .\.venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+# optional: explicitly set SQLite path (default is library.db in project root)
+$env:DATABASE_URL = "sqlite:///library.db"
 
-2) **Use SQLite (default)**
-   - No extra setup needed; data lives in `library.db` in the project root.
-   - To set it explicitly:
-     ```powershell
-     $env:DATABASE_URL = "sqlite:///library.db"
-     ```
+# create tables (migrations if present, otherwise create_all on first run)
+python -m flask --app app db upgrade
 
-3) **Create the database schema**
-   ```powershell
-   flask --app app db upgrade   # applies migrations if migrations/ exists
-   # or rely on create_all(): flask --app app run --debug (first run creates tables)
-   ```
+# optional demo data (idempotent)
+python -m flask --app app seed
 
-4) **Seed demo data (optional but recommended)**
-   ```powershell
-   flask --app app seed
-   ```
-   This creates a default librarian plus sample members, books, a booking, and ratings. The seeder is idempotent—you can rerun it safely.
+# start the app
+python -m flask --app app run --debug
+```
 
-5) **Run the app**
-   ```powershell
-   flask --app app run --debug
-   ```
-   Visit http://localhost:5000 — the login screen is the first stop.
+### Run again (after initial setup)
+```powershell
+cd "LibraDB"
+.\.venv\Scripts\activate
+python -m flask --app app run --debug
+```
 
 ## Accounts and flow
 
@@ -62,4 +54,3 @@ These steps assume Windows 10/11, Python 3.11+, and PowerShell.
 ├── requirements.txt
 └── README.md
 ```
-

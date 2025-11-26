@@ -1,70 +1,57 @@
 {% extends 'base.html' %}
 {% block content %}
-  <div class="row text-center g-3 mb-4">
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title">Books</h5>
-          <p class="display-6">{{ book_count }}</p>
-        </div>
+<div class="hero mb-4">
+  <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+    <div>
+      <div class="accent-title mb-2">LibraDB</div>
+      <h1 class="display-6 mb-2 text-white">A bold, minimal library experience</h1>
+      <p class="text-muted mb-3">One place to browse, book, rate, and manage your catalog—built for librarians and members alike.</p>
+      <div class="d-flex gap-2">
+        <a class="btn btn-primary btn-lg" href="{{ url_for('library.login') }}">Start now</a>
+        <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('library.portfolio') }}">See portfolio</a>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title">Users</h5>
-          <p class="display-6">{{ user_count }}</p>
-        </div>
+    <div class="d-flex flex-column flex-md-row gap-2">
+      <div class="stat-pill">
+        <div class="small text-muted">Books</div>
+        <div class="fs-4 fw-bold">{{ book_count }}</div>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title">Bookings</h5>
-          <p class="display-6">{{ booking_count }}</p>
-        </div>
+      <div class="stat-pill">
+        <div class="small text-muted">Members</div>
+        <div class="fs-4 fw-bold">{{ user_count }}</div>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title">Ratings</h5>
-          <p class="display-6">{{ rating_count }}</p>
-        </div>
+      <div class="stat-pill">
+        <div class="small text-muted">Bookings</div>
+        <div class="fs-4 fw-bold">{{ booking_count }}</div>
+      </div>
+      <div class="stat-pill">
+        <div class="small text-muted">Ratings</div>
+        <div class="fs-4 fw-bold">{{ rating_count }}</div>
       </div>
     </div>
   </div>
-
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Recently added books</div>
-        <ul class="list-group list-group-flush">
-          {% for book in recent_books %}
-            <li class="list-group-item">
-              <strong>{{ book.title }}</strong> by {{ book.author }}<br>
-              <small>{{ book.category.name if book.category else 'Uncategorized' }}</small>
-            </li>
-          {% else %}
-            <li class="list-group-item">No books yet.</li>
-          {% endfor %}
-        </ul>
-      </div>
+</div>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0">Trending titles</h5>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('library.login') }}">Browse catalog</a>
     </div>
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Top rated books</div>
-        <ul class="list-group list-group-flush">
-          {% for book in top_rated %}
-            <li class="list-group-item d-flex justify-content-between">
-              <span>{{ book.title }}</span>
-              <span class="badge bg-success">{{ book.average_rating() }} / 5</span>
-            </li>
-          {% else %}
-            <li class="list-group-item">No ratings yet.</li>
-          {% endfor %}
-        </ul>
-      </div>
+    <div class="row g-3">
+      {% for book in recent_books %}
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100">
+            <h6 class="mb-1">{{ book.title }}</h6>
+            <p class="text-muted mb-2">{{ book.author }}</p>
+            <span class="badge bg-info text-dark">{{ book.category.name if book.category else 'Uncategorized' }}</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="col-12">
+          <p class="text-muted mb-0">No books yet.</p>
+        </div>
+      {% endfor %}
     </div>
   </div>
+</div>
 {% endblock %}

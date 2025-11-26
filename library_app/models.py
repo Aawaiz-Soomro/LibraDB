@@ -81,6 +81,9 @@ class Booking(TimestampMixin, db.Model):
     end_date = db.Column(db.Date, nullable=False)
     returned = db.Column(db.Boolean, default=False)
     approved = db.Column(db.Boolean, default=False)
+    return_requested = db.Column(db.Boolean, default=False)
+    returned_at = db.Column(db.Date)
+    fine_amount = db.Column(db.Integer, default=0)
 
     user = db.relationship("User", back_populates="bookings")
     book = db.relationship("Book", back_populates="bookings")
