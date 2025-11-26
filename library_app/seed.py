@@ -16,11 +16,17 @@ def seed_database() -> None:
     db.session.add_all([fiction, science, history])
     db.session.flush()
 
-    alice = User(name="Alice Johnson", email="alice@example.com")
-    bob = User(name="Bob Smith", email="bob@example.com")
-    carol = User(name="Carol Perez", email="carol@example.com")
+    librarian = User(name="Libby Librarian", email="librarian@example.com", role="librarian", approved=True)
+    librarian.set_password("admin123")
 
-    db.session.add_all([alice, bob, carol])
+    alice = User(name="Alice Johnson", email="alice@example.com", role="member", approved=True)
+    alice.set_password("password123")
+    bob = User(name="Bob Smith", email="bob@example.com", role="member", approved=True)
+    bob.set_password("password123")
+    carol = User(name="Carol Perez", email="carol@example.com", role="member", approved=True)
+    carol.set_password("password123")
+
+    db.session.add_all([librarian, alice, bob, carol])
 
     books = [
         Book(
@@ -59,6 +65,7 @@ def seed_database() -> None:
         book=books[0],
         start_date=date.today(),
         end_date=date.today() + timedelta(days=7),
+        approved=True,
     )
     books[0].copies_available -= 1
 

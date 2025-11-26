@@ -40,6 +40,14 @@ def get_form_value(field_name: str, cast=str, default=None):
 
 @bp.route("/")
 def index():
+    if not current_user():
+        return redirect(url_for("library.login"))
+
+    if current_role() == "librarian":
+        return redirect(url_for("library.admin_portal"))
+    if current_role() == "member":
+        return redirect(url_for("library.member_portal"))
+
     book_count = Book.query.count()
     user_count = User.query.count()
     booking_count = Booking.query.count()
@@ -273,6 +281,10 @@ def portfolio():
 
 @bp.route("/books")
 def books():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     category_id = request.args.get("category", type=int)
     categories = Category.query.all()
 
@@ -291,6 +303,10 @@ def books():
 
 @bp.route("/books/create", methods=["GET", "POST"])
 def create_book():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     categories = Category.query.all()
 
     if request.method == "POST":
@@ -313,6 +329,10 @@ def create_book():
 
 @bp.route("/books/<int:book_id>/edit", methods=["GET", "POST"])
 def edit_book(book_id: int):
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     book = Book.query.get_or_404(book_id)
     categories = Category.query.all()
 
@@ -333,6 +353,10 @@ def edit_book(book_id: int):
 
 @bp.route("/books/<int:book_id>/delete", methods=["POST"])
 def delete_book(book_id: int):
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     book = Book.query.get_or_404(book_id)
     db.session.delete(book)
     db.session.commit()
@@ -342,13 +366,32 @@ def delete_book(book_id: int):
 
 @bp.route("/users")
 def users():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     return render_template("users/list.html", users=User.query.all())
 
 
 @bp.route("/users/create", methods=["GET", "POST"])
 def create_user():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     if request.method == "POST":
-        user = User(name=get_form_value("name"), email=get_form_value("email"))
+        password = get_form_value("password")
+        if not password:
+            flash("Password is required for new accounts.", "warning")
+            return redirect(url_for("library.create_user"))
+
+        user = User(
+            name=get_form_value("name"),
+            email=get_form_value("email"),
+            role=get_form_value("role", default="member"),
+            approved=True,
+        )
+        user.set_password(password)
         db.session.add(user)
         db.session.commit()
         flash("User created", "success")
@@ -359,6 +402,10 @@ def create_user():
 
 @bp.route("/users/<int:user_id>/delete", methods=["POST"])
 def delete_user(user_id: int):
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     user = User.query.get_or_404(user_id)
     db.session.delete(user)
     db.session.commit()
@@ -368,12 +415,20 @@ def delete_user(user_id: int):
 
 @bp.route("/bookings")
 def bookings():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     bookings_list = Booking.query.order_by(Booking.start_date.desc()).all()
     return render_template("bookings/list.html", bookings=bookings_list)
 
 
 @bp.route("/bookings/create", methods=["GET", "POST"])
 def create_booking():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     users = User.query.all()
     books = Book.query.all()
 
@@ -381,7 +436,7 @@ def create_booking():
         book_id = get_form_value("book_id", int)
         book = Book.query.get_or_404(book_id)
         if book.copies_available < 1:
-            flash("No copies available", "warning")
+            flash("No copies available for that book.", "warning")
             return redirect(url_for("library.create_booking"))
 
         booking = Booking(
@@ -389,6 +444,7 @@ def create_booking():
             book_id=book_id,
             start_date=get_form_value("start_date", lambda v: date.fromisoformat(v)),
             end_date=get_form_value("end_date", lambda v: date.fromisoformat(v)),
+            approved=True,
         )
         book.copies_available -= 1
         db.session.add(booking)
@@ -401,8 +457,12 @@ def create_booking():
 
 @bp.route("/bookings/<int:booking_id>/return", methods=["POST"])
 def return_booking(booking_id: int):
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     booking = Booking.query.get_or_404(booking_id)
-    if not booking.returned:
+    if booking.approved and not booking.returned:
         booking.returned = True
         booking.book.copies_available += 1
         db.session.commit()
@@ -412,12 +472,20 @@ def return_booking(booking_id: int):
 
 @bp.route("/ratings")
 def ratings():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     rating_list = Rating.query.order_by(Rating.created_at.desc()).all()
     return render_template("ratings/list.html", ratings=rating_list)
 
 
 @bp.route("/ratings/create", methods=["GET", "POST"])
 def create_rating():
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
     users = User.query.all()
     books = Book.query.all()
     if request.method == "POST":

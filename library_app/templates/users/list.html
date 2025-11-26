@@ -10,6 +10,8 @@
         <tr>
           <th>Name</th>
           <th>Email</th>
+          <th>Role</th>
+          <th>Approved</th>
           <th>Bookings</th>
           <th>Ratings</th>
           <th></th>
@@ -20,6 +22,14 @@
           <tr>
             <td>{{ user.name }}</td>
             <td>{{ user.email }}</td>
+            <td class="text-capitalize">{{ user.role }}</td>
+            <td>
+              {% if user.approved %}
+                <span class="badge bg-success">Yes</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Pending</span>
+              {% endif %}
+            </td>
             <td>{{ user.bookings|length }}</td>
             <td>{{ user.ratings|length }}</td>
             <td class="text-end">
