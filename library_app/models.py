@@ -16,7 +16,7 @@ class User(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False, server_default="")
+    password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), default="member", nullable=False)
     approved = db.Column(db.Boolean, default=False)
 

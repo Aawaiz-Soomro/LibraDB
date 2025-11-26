@@ -45,56 +45,6 @@
     </div>
   </div>
 </div>
-<div class="row g-3 mb-4">
-  <div class="col-lg-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="card-title mb-0">Pending member registrations</h5>
-        </div>
-        <ul class="list-group list-group-flush">
-          {% for member in pending_members %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <strong>{{ member.name }}</strong><br>
-                <small class="text-muted">{{ member.email }}</small>
-              </div>
-              <form method="post" action="{{ url_for('library.approve_member', user_id=member.id) }}">
-                <button class="btn btn-sm btn-success">Approve</button>
-              </form>
-            </li>
-          {% else %}
-            <li class="list-group-item">No pending registrations.</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="card-title mb-0">Booking approvals</h5>
-        </div>
-        <ul class="list-group list-group-flush">
-          {% for booking in pending_bookings %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <strong>{{ booking.book.title }}</strong><br>
-                <small class="text-muted">{{ booking.user.name }} · {{ booking.start_date.strftime('%Y-%m-%d') }} to {{ booking.end_date.strftime('%Y-%m-%d') }}</small>
-              </div>
-              <form method="post" action="{{ url_for('library.approve_booking', booking_id=booking.id) }}">
-                <button class="btn btn-sm btn-primary" {% if booking.book.copies_available < 1 %}disabled{% endif %}>Approve</button>
-              </form>
-            </li>
-          {% else %}
-            <li class="list-group-item">No pending booking requests.</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="card shadow-sm h-100">
