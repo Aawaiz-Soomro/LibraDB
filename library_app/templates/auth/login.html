@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="card-title">Login</h2>
+        <p class="text-muted">Sign in as a librarian or member using your email and password.</p>
+        <form method="post">
+          <input type="hidden" name="mode" value="login">
+          <div class="mb-3">
+            <label class="form-label" for="login_email">Email</label>
+            <input type="email" class="form-control" id="login_email" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="login_password">Password</label>
+            <input type="password" class="form-control" id="login_password" name="password" required>
+          </div>
+          <button class="btn btn-primary w-100">Sign in</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="card-title">Register as a member</h2>
+        <p class="text-muted">Submit your details. A librarian must approve your registration before you can log in.</p>
+        <form method="post">
+          <input type="hidden" name="mode" value="register">
+          <div class="mb-3">
+            <label class="form-label" for="register_name">Full name</label>
+            <input type="text" class="form-control" id="register_name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="register_email">Email</label>
+            <input type="email" class="form-control" id="register_email" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="register_password">Password</label>
+            <input type="password" class="form-control" id="register_password" name="password" required>
+          </div>
+          <button class="btn btn-success w-100">Submit registration</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
