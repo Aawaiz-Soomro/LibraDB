@@ -21,24 +21,30 @@
           <tr>
             <td>{{ booking.book.title }}</td>
             <td>{{ booking.user.name }}</td>
-            <td>{{ booking.start_date.strftime('%Y-%m-%d') }}</td>
-            <td>{{ booking.end_date.strftime('%Y-%m-%d') }}</td>
-            <td>
-              {% if booking.returned %}
+          <td>{{ booking.start_date.strftime('%Y-%m-%d') }}</td>
+          <td>{{ booking.end_date.strftime('%Y-%m-%d') }}</td>
+          <td>
+              {% if not booking.approved %}
+                <span class="badge bg-warning text-dark">Pending approval</span>
+              {% elif booking.returned %}
                 <span class="badge bg-success">Returned</span>
               {% else %}
-                <span class="badge bg-warning text-dark">Active</span>
+                <span class="badge bg-info text-dark">Approved</span>
               {% endif %}
-            </td>
-            <td class="text-end">
-              {% if not booking.returned %}
+          </td>
+          <td class="text-end">
+              {% if not booking.approved %}
+                <form action="{{ url_for('library.approve_booking', booking_id=booking.id) }}" method="post" class="d-inline">
+                  <button class="btn btn-sm btn-primary" {% if booking.book.copies_available < 1 %}disabled{% endif %}>Approve</button>
+                </form>
+              {% elif not booking.returned %}
                 <form action="{{ url_for('library.return_booking', booking_id=booking.id) }}" method="post" class="d-inline">
                   <button class="btn btn-sm btn-outline-success">Mark Returned</button>
                 </form>
               {% endif %}
-            </td>
-          </tr>
-        {% else %}
+          </td>
+        </tr>
+      {% else %}
           <tr>
             <td colspan="6" class="text-center">No bookings yet.</td>
           </tr>
