@@ -40,14 +40,17 @@ def get_form_value(field_name: str, cast=str, default=None):
 
 @bp.route("/")
 def index():
-    if not current_user():
-        return redirect(url_for("library.login"))
+    # Decide what to do based on the current session role
+    role = current_role()
 
-    if current_role() == "librarian":
+    if role == "admin":
+        # Admin (librarian) goes to the admin dashboard
         return redirect(url_for("library.admin_portal"))
-    if current_role() == "member":
+    if role == "member":
+        # Members go to the member dashboard
         return redirect(url_for("library.member_portal"))
 
+    # No role set -> show public landing / stats page
     book_count = Book.query.count()
     user_count = User.query.count()
     booking_count = Booking.query.count()
@@ -126,7 +129,11 @@ def admin_portal():
     rating_count = Rating.query.count()
 
     recent_books = Book.query.order_by(Book.created_at.desc()).limit(5)
-    active_bookings = Booking.query.filter_by(returned=False).order_by(Booking.start_date.desc()).limit(5)
+    active_bookings = (
+        Booking.query.filter_by(returned=False)
+        .order_by(Booking.start_date.desc())
+        .limit(5)
+    )
 
     return render_template(
         "admin/dashboard.html",
@@ -146,8 +153,16 @@ def member_portal():
         return redirect_response
 
     member = current_member()
-    open_bookings = Booking.query.filter_by(user_id=member.id, returned=False).order_by(Booking.start_date.desc()).limit(5)
-    recent_ratings = Rating.query.filter_by(user_id=member.id).order_by(Rating.created_at.desc()).limit(3)
+    open_bookings = (
+        Booking.query.filter_by(user_id=member.id, returned=False)
+        .order_by(Booking.start_date.desc())
+        .limit(5)
+    )
+    recent_ratings = (
+        Rating.query.filter_by(user_id=member.id)
+        .order_by(Rating.created_at.desc())
+        .limit(3)
+    )
     suggested_books = Book.query.order_by(Book.created_at.desc()).limit(4)
 
     return render_template(
