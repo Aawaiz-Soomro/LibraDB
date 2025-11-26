@@ -1,11 +1,34 @@
 from datetime import date
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from . import db
 from .models import Book, Booking, Category, Rating, User
 
 bp = Blueprint("library", __name__)
+
+
+def current_role() -> str | None:
+    return session.get("role")
+
+
+def current_member() -> User | None:
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    return User.query.get(user_id)
+
+
+def require_role(role: str):
+    if current_role() != role:
+        flash("Please log in to access that portal.", "warning")
+        return redirect(url_for("library.login", next=request.path))
+    return None
+
+
+@bp.app_context_processor
+def inject_globals():
+    return {"active_role": current_role(), "active_member": current_member()}
 
 
 def get_form_value(field_name: str, cast=str, default=None):
@@ -34,6 +57,97 @@ def index():
         rating_count=rating_count,
         recent_books=recent_books,
         top_rated=top_rated[:5],
+    )
+
+
+@bp.route("/login", methods=["GET", "POST"])
+def login():
+    users = User.query.order_by(User.name).all()
+
+    if request.method == "POST":
+        role = request.form.get("role")
+
+        if role == "admin":
+            session.clear()
+            session["role"] = "admin"
+            flash("Logged in as Librarian.", "success")
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("library.admin_portal"))
+
+        if role == "member":
+            name = get_form_value("name")
+            email = get_form_value("email")
+            if not name or not email:
+                flash("Please provide your name and email to continue.", "warning")
+                return redirect(url_for("library.login"))
+
+            member = User.query.filter_by(email=email).first()
+            if not member:
+                member = User(name=name, email=email)
+                db.session.add(member)
+                db.session.commit()
+
+            session.clear()
+            session["role"] = "member"
+            session["user_id"] = member.id
+            flash("Signed in to the Member portal.", "success")
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("library.member_portal"))
+
+        flash("Select a portal to continue.", "warning")
+
+    return render_template("auth/login.html", users=users)
+
+
+@bp.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.", "info")
+    return redirect(url_for("library.index"))
+
+
+@bp.route("/admin")
+def admin_portal():
+    redirect_response = require_role("admin")
+    if redirect_response:
+        return redirect_response
+
+    book_count = Book.query.count()
+    user_count = User.query.count()
+    booking_count = Booking.query.count()
+    rating_count = Rating.query.count()
+
+    recent_books = Book.query.order_by(Book.created_at.desc()).limit(5)
+    active_bookings = Booking.query.filter_by(returned=False).order_by(Booking.start_date.desc()).limit(5)
+
+    return render_template(
+        "admin/dashboard.html",
+        book_count=book_count,
+        user_count=user_count,
+        booking_count=booking_count,
+        rating_count=rating_count,
+        recent_books=recent_books,
+        active_bookings=active_bookings,
+    )
+
+
+@bp.route("/member")
+def member_portal():
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    member = current_member()
+    open_bookings = Booking.query.filter_by(user_id=member.id, returned=False).order_by(Booking.start_date.desc()).limit(5)
+    recent_ratings = Rating.query.filter_by(user_id=member.id).order_by(Rating.created_at.desc()).limit(3)
+    suggested_books = Book.query.order_by(Book.created_at.desc()).limit(4)
+
+    return render_template(
+        "member/dashboard.html",
+        member=member,
+        open_bookings=open_bookings,
+        recent_ratings=recent_ratings,
+        suggested_books=suggested_books,
     )
 
 
@@ -319,3 +433,131 @@ def create_rating():
         return redirect(url_for("library.ratings"))
 
     return render_template("ratings/form.html", users=users, books=books)
+
+
+@bp.route("/member/books")
+def member_books():
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    category_id = request.args.get("category", type=int)
+    categories = Category.query.all()
+
+    if category_id:
+        book_list = Book.query.filter_by(category_id=category_id).all()
+    else:
+        book_list = Book.query.all()
+
+    return render_template(
+        "member/books.html",
+        books=book_list,
+        categories=categories,
+        selected_category=category_id,
+    )
+
+
+@bp.route("/member/bookings")
+def member_bookings():
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    member = current_member()
+    bookings_list = (
+        Booking.query.filter_by(user_id=member.id)
+        .order_by(Booking.start_date.desc())
+        .all()
+    )
+    return render_template("member/bookings.html", bookings=bookings_list, member=member)
+
+
+@bp.route("/member/bookings/new", methods=["GET", "POST"])
+def member_create_booking():
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    member = current_member()
+    books = Book.query.all()
+
+    if request.method == "POST":
+        book_id = get_form_value("book_id", int)
+        book = Book.query.get_or_404(book_id)
+        if book.copies_available < 1:
+            flash("No copies available", "warning")
+            return redirect(url_for("library.member_create_booking"))
+
+        booking = Booking(
+            user_id=member.id,
+            book_id=book_id,
+            start_date=get_form_value("start_date", lambda v: date.fromisoformat(v)),
+            end_date=get_form_value("end_date", lambda v: date.fromisoformat(v)),
+        )
+        book.copies_available -= 1
+        db.session.add(booking)
+        db.session.commit()
+        flash("Booking created", "success")
+        return redirect(url_for("library.member_bookings"))
+
+    return render_template("member/booking_form.html", books=books, member=member)
+
+
+@bp.route("/member/bookings/<int:booking_id>/return", methods=["POST"])
+def member_return_booking(booking_id: int):
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    member = current_member()
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.user_id != member.id:
+        flash("That booking does not belong to you.", "danger")
+        return redirect(url_for("library.member_bookings"))
+
+    if not booking.returned:
+        booking.returned = True
+        booking.book.copies_available += 1
+        db.session.commit()
+        flash("Book marked as returned", "success")
+
+    return redirect(url_for("library.member_bookings"))
+
+
+@bp.route("/member/ratings")
+def member_ratings():
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    member = current_member()
+    rating_list = (
+        Rating.query.filter_by(user_id=member.id)
+        .order_by(Rating.created_at.desc())
+        .all()
+    )
+    return render_template("member/ratings.html", ratings=rating_list, member=member)
+
+
+@bp.route("/member/ratings/new", methods=["GET", "POST"])
+def member_create_rating():
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    member = current_member()
+    books = Book.query.all()
+
+    if request.method == "POST":
+        rating = Rating(
+            user_id=member.id,
+            book_id=get_form_value("book_id", int),
+            score=get_form_value("score", int),
+            comment=get_form_value("comment"),
+        )
+        db.session.add(rating)
+        db.session.commit()
+        flash("Thanks for rating!", "success")
+        return redirect(url_for("library.member_ratings"))
+
+    return render_template("member/rating_form.html", books=books, member=member)
