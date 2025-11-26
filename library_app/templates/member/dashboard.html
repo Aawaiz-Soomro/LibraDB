@@ -49,11 +49,16 @@
             <li class="list-group-item d-flex justify-content-between">
               <div>
                 <strong>{{ booking.book.title }}</strong><br>
-                <small class="text-muted">Due {{ booking.end_date.strftime('%Y-%m-%d') }}</small>
+                <small class="text-muted">Due {{ booking.end_date.strftime('%Y-%m-%d') }}</small><br>
+                {% if not booking.approved %}
+                  <span class="badge bg-warning text-dark">Awaiting librarian approval</span>
+                {% endif %}
               </div>
-              <form action="{{ url_for('library.member_return_booking', booking_id=booking.id) }}" method="post">
-                <button class="btn btn-sm btn-success">Mark returned</button>
-              </form>
+              {% if booking.approved and not booking.returned %}
+                <form action="{{ url_for('library.member_return_booking', booking_id=booking.id) }}" method="post">
+                  <button class="btn btn-sm btn-success">Mark returned</button>
+                </form>
+              {% endif %}
             </li>
           {% else %}
             <li class="list-group-item">No active bookings.</li>

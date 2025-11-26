@@ -33,6 +33,11 @@
             <td>{{ user.bookings|length }}</td>
             <td>{{ user.ratings|length }}</td>
             <td class="text-end">
+              {% if not user.approved and user.role == 'member' %}
+                <form action="{{ url_for('library.approve_user', user_id=user.id) }}" method="post" class="d-inline">
+                  <button class="btn btn-sm btn-primary">Approve</button>
+                </form>
+              {% endif %}
               <form action="{{ url_for('library.delete_user', user_id=user.id) }}" method="post" class="d-inline">
                 <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete user?')">Delete</button>
               </form>

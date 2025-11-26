@@ -22,6 +22,7 @@
       <div class="card-body">
         <p class="text-muted mb-1">Members</p>
         <h3 class="fw-bold">{{ user_count }}</h3>
+        <div class="small text-muted mb-2">{{ pending_users }} pending approval</div>
         <a class="stretched-link" href="{{ url_for('library.users') }}">Manage</a>
       </div>
     </div>
@@ -31,6 +32,7 @@
       <div class="card-body">
         <p class="text-muted mb-1">Bookings</p>
         <h3 class="fw-bold">{{ booking_count }}</h3>
+        <div class="small text-muted mb-2">{{ pending_bookings }} pending approval</div>
         <a class="stretched-link" href="{{ url_for('library.bookings') }}">Manage</a>
       </div>
     </div>

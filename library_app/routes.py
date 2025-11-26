@@ -8,27 +8,46 @@ from .models import Book, Booking, Category, Rating, User
 bp = Blueprint("library", __name__)
 
 
-def current_role() -> str | None:
-    return session.get("role")
-
-
-def current_member() -> User | None:
+def current_user() -> User | None:
     user_id = session.get("user_id")
     if not user_id:
         return None
     return User.query.get(user_id)
 
 
+def current_role() -> str | None:
+    user = current_user()
+    if user:
+        return user.role
+    return None
+
+
+def current_member() -> User | None:
+    user = current_user()
+    if not user or user.role != "member":
+        return None
+    return user
+
+
 def require_role(role: str):
-    if current_role() != role:
+    user = current_user()
+    if not user or user.role != role:
         flash("Please log in to access that portal.", "warning")
         return redirect(url_for("library.login", next=request.path))
+    if not user.approved:
+        session.clear()
+        flash("Your account is awaiting librarian approval.", "warning")
+        return redirect(url_for("library.login"))
     return None
 
 
 @bp.app_context_processor
 def inject_globals():
-    return {"active_role": current_role(), "active_member": current_member()}
+    return {
+        "active_role": current_role(),
+        "active_member": current_member(),
+        "active_user": current_user(),
+    }
 
 
 def get_form_value(field_name: str, cast=str, default=None):
@@ -40,89 +59,85 @@ def get_form_value(field_name: str, cast=str, default=None):
 
 @bp.route("/")
 def index():
-    # Decide what to do based on the current session role
+    # First touch should land on auth; if already signed in, route to the right portal.
     role = current_role()
 
-    if role == "admin":
-        # Admin (librarian) goes to the admin dashboard
+    if role == "librarian":
         return redirect(url_for("library.admin_portal"))
     if role == "member":
-        # Members go to the member dashboard
         return redirect(url_for("library.member_portal"))
 
-    # No role set -> show public landing / stats page
-    book_count = Book.query.count()
-    user_count = User.query.count()
-    booking_count = Booking.query.count()
-    rating_count = Rating.query.count()
-
-    recent_books = Book.query.order_by(Book.created_at.desc()).limit(5)
-    top_rated = Book.query.all()
-    top_rated.sort(key=lambda b: b.average_rating(), reverse=True)
-
-    return render_template(
-        "index.html",
-        book_count=book_count,
-        user_count=user_count,
-        booking_count=booking_count,
-        rating_count=rating_count,
-        recent_books=recent_books,
-        top_rated=top_rated[:5],
-    )
+    return redirect(url_for("library.login"))
 
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
-    users = User.query.order_by(User.name).all()
-
     if request.method == "POST":
-        role = request.form.get("role")
+        action = request.form.get("action", "login")
 
-        if role == "admin":
-            session.clear()
-            session["role"] = "admin"
-            flash("Logged in as Librarian.", "success")
-            next_page = request.args.get("next")
-            return redirect(next_page or url_for("library.admin_portal"))
-
-        if role == "member":
+        if action == "register":
             name = get_form_value("name")
             email = get_form_value("email")
-            if not name or not email:
-                flash("Please provide your name and email to continue.", "warning")
+            password = get_form_value("password")
+            if not all([name, email, password]):
+                flash("Please provide name, email, and password to register.", "warning")
                 return redirect(url_for("library.login"))
 
-            member = User.query.filter_by(email=email).first()
-            if not member:
-                member = User(name=name, email=email)
-                db.session.add(member)
-                db.session.commit()
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                flash("An account with that email already exists. Please log in.", "info")
+                return redirect(url_for("library.login"))
 
-            session.clear()
-            session["role"] = "member"
-            session["user_id"] = member.id
-            flash("Signed in to the Member portal.", "success")
-            next_page = request.args.get("next")
-            return redirect(next_page or url_for("library.member_portal"))
+            user = User(name=name, email=email, role="member", approved=False)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            flash("Registration submitted. A librarian must approve your account.", "success")
+            return redirect(url_for("library.login"))
 
-        flash("Select a portal to continue.", "warning")
+        email = get_form_value("email")
+        password = get_form_value("password")
 
-    return render_template("auth/login.html", users=users)
+        if not email or not password:
+            flash("Enter both email and password to sign in.", "warning")
+            return redirect(url_for("library.login"))
+
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(password):
+            flash("Invalid credentials. Please try again.", "danger")
+            return redirect(url_for("library.login"))
+
+        if not user.approved:
+            flash("Your account is awaiting librarian approval.", "warning")
+            return redirect(url_for("library.login"))
+
+        session.clear()
+        session["role"] = user.role
+        session["user_id"] = user.id
+        flash("Welcome back!", "success")
+        next_page = request.args.get("next")
+        if user.role == "librarian":
+            return redirect(next_page or url_for("library.admin_portal"))
+        return redirect(next_page or url_for("library.member_portal"))
+
+    return render_template("auth/login.html")
 
 
 @bp.route("/logout")
 def logout():
     session.clear()
     flash("You have been logged out.", "info")
-    return redirect(url_for("library.index"))
+    return redirect(url_for("library.login"))
 
 
 @bp.route("/admin")
 def admin_portal():
-    redirect_response = require_role("admin")
+    redirect_response = require_role("librarian")
     if redirect_response:
         return redirect_response
 
+    pending_users = User.query.filter_by(role="member", approved=False).count()
+    pending_bookings = Booking.query.filter_by(approved=False).count()
     book_count = Book.query.count()
     user_count = User.query.count()
     booking_count = Booking.query.count()
@@ -130,7 +145,7 @@ def admin_portal():
 
     recent_books = Book.query.order_by(Book.created_at.desc()).limit(5)
     active_bookings = (
-        Booking.query.filter_by(returned=False)
+        Booking.query.filter_by(returned=False, approved=True)
         .order_by(Booking.start_date.desc())
         .limit(5)
     )
@@ -143,6 +158,8 @@ def admin_portal():
         rating_count=rating_count,
         recent_books=recent_books,
         active_bookings=active_bookings,
+        pending_users=pending_users,
+        pending_bookings=pending_bookings,
     )
 
 
@@ -428,6 +445,27 @@ def delete_user(user_id: int):
     return redirect(url_for("library.users"))
 
 
+@bp.route("/users/<int:user_id>/approve", methods=["POST"])
+def approve_user(user_id: int):
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
+    user = User.query.get_or_404(user_id)
+    if user.role != "member":
+        flash("Only member accounts require approval.", "info")
+        return redirect(url_for("library.users"))
+
+    if user.approved:
+        flash("User already approved.", "info")
+        return redirect(url_for("library.users"))
+
+    user.approved = True
+    db.session.commit()
+    flash(f"{user.name} approved.", "success")
+    return redirect(url_for("library.users"))
+
+
 @bp.route("/bookings")
 def bookings():
     redirect_response = require_role("librarian")
@@ -444,7 +482,7 @@ def create_booking():
     if redirect_response:
         return redirect_response
 
-    users = User.query.all()
+    users = User.query.filter_by(role="member", approved=True).order_by(User.name).all()
     books = Book.query.all()
 
     if request.method == "POST":
@@ -454,8 +492,14 @@ def create_booking():
             flash("No copies available for that book.", "warning")
             return redirect(url_for("library.create_booking"))
 
+        user_id = get_form_value("user_id", int)
+        member = User.query.get_or_404(user_id)
+        if member.role != "member" or not member.approved:
+            flash("Select an approved member account.", "warning")
+            return redirect(url_for("library.create_booking"))
+
         booking = Booking(
-            user_id=get_form_value("user_id", int),
+            user_id=user_id,
             book_id=book_id,
             start_date=get_form_value("start_date", lambda v: date.fromisoformat(v)),
             end_date=get_form_value("end_date", lambda v: date.fromisoformat(v)),
@@ -482,6 +526,28 @@ def return_booking(booking_id: int):
         booking.book.copies_available += 1
         db.session.commit()
         flash("Book returned", "success")
+    return redirect(url_for("library.bookings"))
+
+
+@bp.route("/bookings/<int:booking_id>/approve", methods=["POST"])
+def approve_booking(booking_id: int):
+    redirect_response = require_role("librarian")
+    if redirect_response:
+        return redirect_response
+
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.approved:
+        flash("Booking already approved.", "info")
+        return redirect(url_for("library.bookings"))
+
+    if booking.book.copies_available < 1:
+        flash("No copies available to approve this booking.", "warning")
+        return redirect(url_for("library.bookings"))
+
+    booking.approved = True
+    booking.book.copies_available -= 1
+    db.session.commit()
+    flash("Booking approved.", "success")
     return redirect(url_for("library.bookings"))
 
 
@@ -540,6 +606,21 @@ def member_books():
     )
 
 
+@bp.route("/member/books/<int:book_id>/reviews")
+def member_book_reviews(book_id: int):
+    redirect_response = require_role("member")
+    if redirect_response:
+        return redirect_response
+
+    book = Book.query.get_or_404(book_id)
+    ratings = (
+        Rating.query.filter_by(book_id=book.id)
+        .order_by(Rating.created_at.desc())
+        .all()
+    )
+    return render_template("member/book_reviews.html", book=book, ratings=ratings)
+
+
 @bp.route("/member/bookings")
 def member_bookings():
     redirect_response = require_role("member")
@@ -563,27 +644,61 @@ def member_create_booking():
 
     member = current_member()
     books = Book.query.all()
+    selected_book_id = request.args.get("book_id", type=int)
+    today = date.today()
 
     if request.method == "POST":
         book_id = get_form_value("book_id", int)
-        book = Book.query.get_or_404(book_id)
-        if book.copies_available < 1:
-            flash("No copies available", "warning")
+        start_raw = request.form.get("start_date")
+        end_raw = request.form.get("end_date")
+
+        if not book_id:
+            flash("Select a book to continue.", "warning")
             return redirect(url_for("library.member_create_booking"))
+
+        book = Book.query.get(book_id)
+        if not book:
+            flash("Selected book was not found.", "danger")
+            return redirect(url_for("library.member_create_booking"))
+
+        if book.copies_available < 1:
+            flash("No copies available right now. Please pick another title.", "warning")
+            return redirect(url_for("library.member_create_booking", book_id=book_id))
+
+        try:
+            start_date = date.fromisoformat(start_raw)
+            end_date = date.fromisoformat(end_raw)
+        except Exception:
+            flash("Provide valid start and end dates.", "warning")
+            return redirect(url_for("library.member_create_booking", book_id=book_id))
+
+        if start_date < today:
+            flash("Start date cannot be in the past.", "warning")
+            return redirect(url_for("library.member_create_booking", book_id=book_id))
+        if end_date < start_date:
+            flash("End date cannot be before the start date.", "warning")
+            return redirect(url_for("library.member_create_booking", book_id=book_id))
 
         booking = Booking(
             user_id=member.id,
             book_id=book_id,
-            start_date=get_form_value("start_date", lambda v: date.fromisoformat(v)),
-            end_date=get_form_value("end_date", lambda v: date.fromisoformat(v)),
+            start_date=start_date,
+            end_date=end_date,
+            approved=False,
         )
-        book.copies_available -= 1
         db.session.add(booking)
         db.session.commit()
-        flash("Booking created", "success")
+        flash("Booking request submitted. A librarian must approve it.", "success")
         return redirect(url_for("library.member_bookings"))
 
-    return render_template("member/booking_form.html", books=books, member=member)
+    return render_template(
+        "member/booking_form.html",
+        books=books,
+        member=member,
+        selected_book_id=selected_book_id,
+        min_date=today.isoformat(),
+        default_end=(today + timedelta(days=7)).isoformat(),
+    )
 
 
 @bp.route("/member/bookings/<int:booking_id>/return", methods=["POST"])
@@ -596,6 +711,10 @@ def member_return_booking(booking_id: int):
     booking = Booking.query.get_or_404(booking_id)
     if booking.user_id != member.id:
         flash("That booking does not belong to you.", "danger")
+        return redirect(url_for("library.member_bookings"))
+
+    if not booking.approved:
+        flash("This booking is still awaiting librarian approval.", "warning")
         return redirect(url_for("library.member_bookings"))
 
     if not booking.returned:
@@ -630,6 +749,7 @@ def member_create_rating():
 
     member = current_member()
     books = Book.query.all()
+    selected_book_id = request.args.get("book_id", type=int)
 
     if request.method == "POST":
         rating = Rating(
@@ -643,4 +763,9 @@ def member_create_rating():
         flash("Thanks for rating!", "success")
         return redirect(url_for("library.member_ratings"))
 
-    return render_template("member/rating_form.html", books=books, member=member)
+    return render_template(
+        "member/rating_form.html",
+        books=books,
+        member=member,
+        selected_book_id=selected_book_id,
+    )

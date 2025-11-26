@@ -28,6 +28,16 @@
           <h5 class="card-title">{{ book.title }}</h5>
           <p class="text-muted mb-1">{{ book.author }}</p>
           <p class="small text-muted mb-2">{{ book.category.name if book.category else 'Uncategorized' }}</p>
+          <div class="mb-2">
+            {% set rating_count = book.ratings|length %}
+            {% if rating_count > 0 %}
+              <a class="text-decoration-none" href="{{ url_for('library.member_book_reviews', book_id=book.id) }}">
+                <span class="badge bg-warning text-dark">{{ '%.1f'|format(book.average_rating()) }} ★ ({{ rating_count }})</span>
+              </a>
+            {% else %}
+              <span class="badge bg-secondary">No ratings yet</span>
+            {% endif %}
+          </div>
           <p class="flex-grow-1">{{ book.description or 'No description available.' }}</p>
           <div class="d-flex justify-content-between align-items-center">
             <span class="badge bg-info text-dark">{{ book.copies_available }} of {{ book.copies_total }} available</span>

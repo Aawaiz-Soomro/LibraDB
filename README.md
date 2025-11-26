@@ -1,12 +1,12 @@
 # LibraDB - Library Management System
 
-A full-stack Library Management System built with Flask, SQLAlchemy, Jinja templates, and Bootstrap. The app provides librarian and member portals with authentication, approvals, bookings, and ratings.
+Flask + SQLite library manager with a single login/registration screen, role-aware portals, librarian approvals, and sample seed data.
 
 ## Windows + SQLite quick start
 
-The following steps assume Windows 10/11 with Python 3.11+ installed and Git Bash/PowerShell available.
+These steps assume Windows 10/11, Python 3.11+, and PowerShell.
 
-1. **Clone and set up a virtual environment**
+1) **Clone and create a virtual environment**
    ```powershell
    git clone https://github.com/your-org/LibraDB.git
    cd LibraDB
@@ -15,43 +15,37 @@ The following steps assume Windows 10/11 with Python 3.11+ installed and Git Bas
    pip install -r requirements.txt
    ```
 
-2. **Use SQLite (default)**
-   - No extra configuration is required. If `DATABASE_URL` is not set, the app stores data in `library.db` in the project root.
-   - To explicitly set it, run:
+2) **Use SQLite (default)**
+   - No extra setup needed; data lives in `library.db` in the project root.
+   - To set it explicitly:
      ```powershell
      $env:DATABASE_URL = "sqlite:///library.db"
      ```
 
-3. **Initialize the database**
+3) **Create the database schema**
    ```powershell
-   flask --app app db init
-   flask --app app db migrate -m "Bootstrap tables"
-   flask --app app db upgrade
-   flask --app app seed   # optional demo data (creates a librarian and sample members)
+   flask --app app db upgrade   # applies migrations if migrations/ exists
+   # or rely on create_all(): flask --app app run --debug (first run creates tables)
    ```
 
-   > Tip: The app also calls `db.create_all()` on startup. If you skip the migration
-   > commands on SQLite, simply running `flask --app app run --debug` will create the
-   > tables automatically and insert a default librarian account if none exists.
+4) **Seed demo data (optional but recommended)**
+   ```powershell
+   flask --app app seed
+   ```
+   This creates a default librarian plus sample members, books, a booking, and ratings. The seeder is idempotent—you can rerun it safely.
 
-4. **Run the development server**
+5) **Run the app**
    ```powershell
    flask --app app run --debug
    ```
+   Visit http://localhost:5000 — the login screen is the first stop.
 
-5. **Sign in** at http://localhost:5000
-   - Librarian demo: `librarian@example.com / admin123`
-   - Member demo: `alice@example.com / password123`
-   - New member registrations are created from the login page and require librarian approval before sign-in.
+## Accounts and flow
 
-## Core features
-
-- Single login/registration screen with role-aware routing to librarian or member portals.
-- Librarian approvals for new member registrations and member booking requests.
-- Manage books with categories, descriptions, and copy tracking.
-- Create and manage bookings, including approvals and returns.
-- Collect 1-5 star ratings with comments for each book.
-- Dashboards for both roles with quick actions and summaries.
+- **Librarian demo:** `librarian@example.com / admin123`
+- **Member demo:** `alice@example.com / password123`
+- New users register as members only from the login page; a librarian must approve their account before they can sign in.
+- Member booking requests also require librarian approval before they count against available copies.
 
 ## Project structure
 
