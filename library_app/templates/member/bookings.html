@@ -25,16 +25,14 @@
           <td>{{ booking.start_date.strftime('%Y-%m-%d') }}</td>
           <td>{{ booking.end_date.strftime('%Y-%m-%d') }}</td>
           <td>
-            {% if not booking.approved %}
-              <span class="badge bg-warning text-dark">Pending approval</span>
-            {% elif booking.returned %}
+            {% if booking.returned %}
               <span class="badge bg-success">Returned</span>
             {% else %}
-              <span class="badge bg-info text-dark">Approved</span>
+              <span class="badge bg-warning text-dark">Active</span>
             {% endif %}
           </td>
           <td class="text-end">
-            {% if booking.approved and not booking.returned %}
+            {% if not booking.returned %}
               <form action="{{ url_for('library.member_return_booking', booking_id=booking.id) }}" method="post" class="d-inline">
                 <button class="btn btn-sm btn-outline-success">Mark returned</button>
               </form>

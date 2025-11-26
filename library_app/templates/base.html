@@ -18,7 +18,7 @@
           <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link" href="{{ url_for('library.admin_portal') }}">Admin Portal</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('library.member_portal') }}">Member Portal</a></li>
-            {% if active_role == 'librarian' %}
+            {% if active_role == 'admin' %}
               <li class="nav-item"><a class="nav-link" href="{{ url_for('library.books') }}">Books</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('library.users') }}">Users</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('library.bookings') }}">Bookings</a></li>
@@ -30,7 +30,7 @@
             {% endif %}
           </ul>
           <ul class="navbar-nav ms-auto">
-            {% if active_role == 'librarian' %}
+            {% if active_role == 'admin' %}
               <li class="nav-item"><span class="navbar-text text-white-50">Signed in as Librarian</span></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('library.logout') }}">Logout</a></li>
             {% elif active_role == 'member' and active_member %}
