@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from . import db
 
 
@@ -14,9 +16,18 @@ class User(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False, server_default="")
+    role = db.Column(db.String(20), default="member", nullable=False)
+    approved = db.Column(db.Boolean, default=False)
 
     bookings = db.relationship("Booking", back_populates="user", cascade="all, delete-orphan")
     ratings = db.relationship("Rating", back_populates="user", cascade="all, delete-orphan")
+
+    def set_password(self, password: str) -> None:
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<User {self.name}>"
@@ -69,6 +80,7 @@ class Booking(TimestampMixin, db.Model):
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     returned = db.Column(db.Boolean, default=False)
+    approved = db.Column(db.Boolean, default=False)
 
     user = db.relationship("User", back_populates="bookings")
     book = db.relationship("Book", back_populates="bookings")

@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from .config import Config
+from .models import User
 
 # Initialize extensions
 
@@ -29,5 +30,18 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .seed import seed_database
 
         seed_database()
+
+    with app.app_context():
+        db.create_all()
+        if not User.query.filter_by(role="librarian").first():
+            librarian = User(
+                name="Librarian",
+                email="librarian@example.com",
+                role="librarian",
+                approved=True,
+            )
+            librarian.set_password("admin123")
+            db.session.add(librarian)
+            db.session.commit()
 
     return app

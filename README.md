@@ -1,62 +1,57 @@
 # LibraDB - Library Management System
 
-A simple full-stack Library Management System built with Flask, Jinja templates, Bootstrap, and MySQL/SQLite. It demonstrates CRUD operations, booking, ratings, listings, and other common library workflows with a clean UI.
+A full-stack Library Management System built with Flask, SQLAlchemy, Jinja templates, and Bootstrap. The app provides librarian and member portals with authentication, approvals, bookings, and ratings.
 
-## Features
+## Windows + SQLite quick start
 
-- Manage books with categories, descriptions, and copy tracking.
-- Register patrons and view their bookings and ratings.
-- Create and manage bookings, including marking books as returned.
-- Collect 1-5 star ratings with comments for each book.
-- Dashboard with quick statistics, recent additions, and top-rated books.
-- Database seeding command to populate demo data.
+The following steps assume Windows 10/11 with Python 3.11+ installed and Git Bash/PowerShell available.
 
-## Tech stack
-
-- Python 3.11+
-- Flask 3 + SQLAlchemy ORM + Flask-Migrate
-- MySQL (recommended) or SQLite for local demos
-- Bootstrap 5 for styling
-
-## Getting started
-
-1. **Install dependencies**
-   ```bash
+1. **Clone and set up a virtual environment**
+   ```powershell
+   git clone https://github.com/your-org/LibraDB.git
+   cd LibraDB
    python -m venv .venv
-   source .venv/bin/activate
+   .\.venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-2. **Configure the database**
-   - Set the `DATABASE_URL` environment variable, e.g.
-     ```bash
-     export DATABASE_URL="mysql://user:password@localhost:3306/library"
+2. **Use SQLite (default)**
+   - No extra configuration is required. If `DATABASE_URL` is not set, the app stores data in `library.db` in the project root.
+   - To explicitly set it, run:
+     ```powershell
+     $env:DATABASE_URL = "sqlite:///library.db"
      ```
-   - Without this variable, the app falls back to a local SQLite file (`library.db`).
 
 3. **Initialize the database**
-   ```bash
+   ```powershell
    flask --app app db init
-   flask --app app db migrate -m "Initial tables"
+   flask --app app db migrate -m "Bootstrap tables"
    flask --app app db upgrade
-   flask --app app seed  # optional demo data
+   flask --app app seed   # optional demo data (creates a librarian and sample members)
    ```
 
+   > Tip: The app also calls `db.create_all()` on startup. If you skip the migration
+   > commands on SQLite, simply running `flask --app app run --debug` will create the
+   > tables automatically and insert a default librarian account if none exists.
+
 4. **Run the development server**
-   ```bash
+   ```powershell
    flask --app app run --debug
    ```
 
-5. **Access the UI** at http://localhost:5000 to manage books, users, bookings, and ratings.
+5. **Sign in** at http://localhost:5000
+   - Librarian demo: `librarian@example.com / admin123`
+   - Member demo: `alice@example.com / password123`
+   - New member registrations are created from the login page and require librarian approval before sign-in.
 
-### Portfolio page
+## Core features
 
-The project also bundles a high-polish dark portfolio website meant for quick personal presentations.
-
-- Start the Flask dev server and visit `http://localhost:5000/portfolio`.
-- Update `library_app/routes.py` to tweak the dummy content (hero text, stats, featured projects, etc.).
-- Replace the placeholder imagery referenced in `library_app/templates/portfolio.html` and adjust the bespoke styling in `library_app/static/css/portfolio.css` as needed.
-- The template is fully responsive and intentionally data-light to keep the page fast while emphasizing visuals.
+- Single login/registration screen with role-aware routing to librarian or member portals.
+- Librarian approvals for new member registrations and member booking requests.
+- Manage books with categories, descriptions, and copy tracking.
+- Create and manage bookings, including approvals and returns.
+- Collect 1-5 star ratings with comments for each book.
+- Dashboards for both roles with quick actions and summaries.
 
 ## Project structure
 
