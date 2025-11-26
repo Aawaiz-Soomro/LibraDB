@@ -30,6 +30,10 @@ The following steps assume Windows 10/11 with Python 3.11+ installed and Git Bas
    flask --app app seed   # optional demo data (creates a librarian and sample members)
    ```
 
+   > Tip: The app also calls `db.create_all()` on startup. If you skip the migration
+   > commands on SQLite, simply running `flask --app app run --debug` will create the
+   > tables automatically and insert a default librarian account if none exists.
+
 4. **Run the development server**
    ```powershell
    flask --app app run --debug
